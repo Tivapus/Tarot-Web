@@ -1,6 +1,7 @@
 'use client';
 
 import FooterText from '@/components/FooterText';
+import { useTarot } from '@/contexts/TarotContext';
 import { BackGround } from '@/styles/BackGround.styled';
 import { AllModeCardContainer, FlipContainer, FlipFace, FlipInner, ModeCardContainer, ModeImage, ModeTextInCard } from '@/styles/HomePageContainer.styled';
 import { NavBarContainer } from '@/styles/NavBarContainer.styled';
@@ -11,28 +12,30 @@ import { useEffect, useState } from 'react';
 export default function SelectModePage() {
     const router = useRouter();
 
+    const { updateMode, updateNumCard, clearAllState } = useTarot();
+
     const [isFlippedMode1, setIsFlippedMode1] = useState(false);
     const [isFlippedMode2, setIsFlippedMode2] = useState(false);
     const [isFlippedMode3, setIsFlippedMode3] = useState(false);
 
     useEffect(()=>{
-        sessionStorage.clear();
-    })
+        clearAllState();
+    },[])
 
     const handleOnClickDaily = ()=>{
-        sessionStorage.setItem('mode',JSON.stringify('daily_life'));
-        sessionStorage.setItem('num-card',JSON.stringify(3));
+        updateMode('daily_life')
+        updateNumCard(3);
         router.push('/pick-card');
     }
 
     const handleOnClickYesNo = ()=>{
-        sessionStorage.setItem('mode',JSON.stringify('yes_no'));
-        sessionStorage.setItem('num-card',JSON.stringify(1));
+        updateMode('yes_no')
+        updateNumCard(1);
         router.push('/ask-question');
     }
 
     const handleOnClickChatAi = ()=>{
-        sessionStorage.setItem('mode',JSON.stringify('chat_ai'));
+        updateMode('chat_ai')
         router.push('/ask-question');
     }
     return (

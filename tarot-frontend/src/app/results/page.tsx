@@ -1,126 +1,117 @@
 'use client';
 
+import { useRouter } from 'next/navigation';
+import { useEffect, useState } from 'react';
+import { useTarot } from '@/contexts/TarotContext';
+import { generateMessage } from '@/TarotPromtpTemplate';
+import { tarotDeck } from '@/TarotDeck';
+
 import FooterText from '@/components/FooterText';
 import MainNavBar from '@/components/MainNavBar';
-import { CardType } from '@/models/Card.model';
 import { BackGround } from '@/styles/BackGround.styled';
 import { CardImage } from '@/styles/CardContainer.styled';
 import { NavBarContainer } from '@/styles/NavBarContainer.styled';
 import { CardDetailContainer, CardDetailYesNoContainer, ResultPickUpContainer, ShowAllCardContainer, ShowResultYesNoContainer, SummaryStockAllContainer, SummaryStockTextContainer, TextContainer } from '@/styles/ResultsCardWrapper.styled';
 import { DefaultMenuWrapContainer, HeaderText, MiddleLineStyle, Paragraph, SubHeaderText } from '@/styles/Shared.styled';
-import { tarotDeck } from '@/TarotDeck';
-import { generateMessage, mockDataDailyLife, mockDataYesNo } from '@/TarotPromtpTemplate';
-import { useRouter } from 'next/navigation';
-import { useEffect, useState } from 'react';
 
 export default function ResultsPage() {
     const router = useRouter();
+    const { 
+        isInitialized, 
+        mode, 
+        question, 
+        selectedCards, 
+        predictionResult, 
+        updatePredictionResult 
+    } = useTarot();
 
-    const [results,setResults] = useState<any>(null);
     const [loading, setLoading] = useState<boolean>(true);
 
-    const [mode,setMode] = useState<string>('')
-    const [ready,setReady] = useState<boolean>(false);
-    const [cardSelectList, setCardSelectList] = useState<CardType[]>([]);
-    const [question,setQuestion] = useState<string>('');
+    useEffect(() => {
+        if (!isInitialized) return;
 
-    useEffect(()=>{
-        const cardSelect = sessionStorage.getItem("cards");
-        const modeItem = sessionStorage.getItem('mode');
-        const questionItem = sessionStorage.getItem('question');
-        if(cardSelect){
-            setCardSelectList(JSON.parse(cardSelect));
-        }
-        if(modeItem){
-            setMode(JSON.parse(modeItem));
-        }
-        if(questionItem){
-            setQuestion(JSON.parse(questionItem));
-        }
-        if(!cardSelect || !modeItem){
+        if (!mode || (mode !== 'daily_life' && !question)) {
             router.push('/home');
+            window.alert('Empty Variables')
             return;
         }
-        setReady(true)
-    },[])
 
-    useEffect(()=>{
-        if(!ready) return;
-        const message = generateMessage(mode, cardSelectList, question);
-        console.log(message)
-        const sendReqToAI = async () =>{
+        if (predictionResult && (predictionResult.question === question || mode === 'daily_life')) {
+            setLoading(false);
+            return;
+        }
+        
+        const sendReqToAI = async () => {
+            setLoading(true);
+            const message = generateMessage(mode, selectedCards, question);
+            
             try {
                 const response = await fetch('/api/chat', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ message:message,mode:mode }),
+                    body: JSON.stringify({ message, mode }),
                 });
+
+                if (!response.ok) throw new Error('API request failed');
 
                 const data = await response.json();
                 const aiMessage = data.reply;
+                const parsedData = JSON.parse(aiMessage);
 
-                const cleanReply = aiMessage.replace(/```json|```/g, '').trim();
-                const parsedData = JSON.parse(cleanReply);
-                if(parsedData.status === 'invalid_question'){
+                if (parsedData.status === 'invalid_question') {
                     window.alert(parsedData.message);
-                    sessionStorage.setItem('question','');
+                    updatePredictionResult(null); 
                     router.push('/ask-question');
-                }else{
-                    setResults(parsedData);
+                } else {
+                    updatePredictionResult(parsedData);
                 }
             } catch (error) {
                 console.error("Error fetching or parsing AI response:", error);
-                window.alert('❌ ข้อผิดพลาดในการเชื่อมต่อ AI')
-                setResults('❌ ข้อผิดพลาดในการเชื่อมต่อ AI');
+                window.alert('❌ ข้อผิดพลาดในการเชื่อมต่อ AI');
                 router.push('/home');
-            } finally{
+            } finally {
                 setLoading(false);
             }
         }
-        sendReqToAI();
-    },[ready])
 
-    useEffect(()=>{
-        console.log('results:', results);
-        console.log(JSON.stringify(results));
-        console.log('typeof results:', typeof results);
-    }, [results]);
+        sendReqToAI();
+        
+    }, [isInitialized, mode, question, selectedCards, router, updatePredictionResult]);
 
     const normalize = (name: string) => name.trim().toLowerCase().replace(/^the\s+/i, '');
-    const renderDailyLife = () =>{
-        const cards = results?.cards ?? [];
-        const summary = results?.summary ?? '';
-        const stock_recommendation = results?.stock_recommendation ?? { stocks: [] };
-        const follow_up_question = results?.follow_up_question ?? '';
-        return(
+
+    const renderDailyLife = () => {
+        const cards = predictionResult?.cards ?? [];
+        const summary = predictionResult?.summary ?? '';
+        const stock_recommendation = predictionResult?.stock_recommendation ?? { stocks: [] };
+        
+        return (
             <ResultPickUpContainer>
                 <HeaderText>Results</HeaderText>
                 <ShowAllCardContainer>
-                {cards.map((aiCard: any, idx: number) => {
-                    const localCard = tarotDeck.find(c => normalize(c.name) === normalize(aiCard.card_name));
-
-                    return (
-                    <CardDetailContainer key={idx}>
-                        {localCard ? 
-                            <CardImage src={`/assets/cards/${localCard.png}`} alt={localCard.name} width={225} height={338}/> 
-                        : <Paragraph>⚠️ ไม่พบภาพของ {aiCard.card_name}</Paragraph>}
-                        <TextContainer>
-                            <HeaderText>{aiCard.time_frame.charAt(0).toUpperCase() + aiCard.time_frame.slice(1).toLowerCase()}</HeaderText>
-                            <SubHeaderText>{aiCard.card_name}</SubHeaderText>
-                            <Paragraph>{aiCard.meaning}</Paragraph>
-                        </TextContainer>
-                    </CardDetailContainer>
-                    );
-                })}
+                    {cards.map((aiCard: any, idx: number) => {
+                        const localCard = tarotDeck.find(c => normalize(c.name) === normalize(aiCard.card_name));
+                        return (
+                            <CardDetailContainer key={idx}>
+                                {localCard ? 
+                                    <CardImage src={`/assets/cards/${localCard.png}`} alt={localCard.name} width={225} height={338}/> 
+                                : <Paragraph>⚠️ ไม่พบภาพของ {aiCard.card_name}</Paragraph>}
+                                <TextContainer>
+                                    <HeaderText>{aiCard.time_frame?.charAt(0).toUpperCase() + aiCard.time_frame?.slice(1).toLowerCase()}</HeaderText>
+                                    <SubHeaderText>{aiCard.card_name}</SubHeaderText>
+                                    <Paragraph>{aiCard.meaning}</Paragraph>
+                                </TextContainer>
+                            </CardDetailContainer>
+                        );
+                    })}
                 </ShowAllCardContainer>
                 <SummaryStockAllContainer>
                     <SummaryStockTextContainer>
                         <SubHeaderText>สรุปคำทำนาย</SubHeaderText>
                         <Paragraph>{summary}</Paragraph>
                     </SummaryStockTextContainer>
-
                     <SummaryStockTextContainer>
-                        <SubHeaderText>แนะนำหุ้น</SubHeaderText>
+                        <SubHeaderText>แนะนำสินทรัพย์</SubHeaderText>
                         {stock_recommendation.stocks.map((stock: any, idx: number) => (
                             <Paragraph key={idx}>
                                 📈 {stock.stock}: {stock.reason}
@@ -129,19 +120,18 @@ export default function ResultsPage() {
                     </SummaryStockTextContainer>
                 </SummaryStockAllContainer>
             </ResultPickUpContainer>
-        )
+        );
     };
     
-    const renderYesNo = () =>{
-        const card = results?.card;
-        const followUpQuestion = results?.follow_up_question
-        return(
+    const renderYesNo = () => {
+        const card = predictionResult?.card;
+
+        return (
             <ResultPickUpContainer>
                 <HeaderText>ผลการทำนาย (Yes / No)</HeaderText>
-
                 <ShowResultYesNoContainer>
-                    {cardSelectList.map((cardItem, key) => (
-                        <CardDetailYesNoContainer>
+                    {selectedCards.map((cardItem, key) => (
+                        <CardDetailYesNoContainer key={key}>
                             <CardImage src={`/assets/cards/${cardItem.png}`} alt={cardItem.name} width={300} height={455}/>
                             <SubHeaderText>{cardItem.name}</SubHeaderText>
                         </CardDetailYesNoContainer>
@@ -149,17 +139,17 @@ export default function ResultsPage() {
                     <MiddleLineStyle/>
                     {card && (
                         <TextContainer>
-                            <SubHeaderText>คำถาม : {question ? question : '( Your Question )'}</SubHeaderText>
+                            <SubHeaderText>คำถาม : {predictionResult?.question ?? '( Your Question )'}</SubHeaderText>
                             <HeaderText>{card.answer.split(' ')[0]}</HeaderText>
                             <Paragraph>{card.answer.split('เพราะ')[1]}</Paragraph>
                         </TextContainer>
                     )}
                 </ShowResultYesNoContainer>
             </ResultPickUpContainer>
-        )
+        );
     };
 
-    if (loading) {
+    if (loading || !isInitialized) {
         return (
             <BackGround>
                 <NavBarContainer/>
@@ -175,9 +165,9 @@ export default function ResultsPage() {
     return (
         <BackGround>
             <MainNavBar/>
-            {mode === 'daily_life' && renderDailyLife()}
-            {mode === 'yes_no' && renderYesNo()}
-            <FooterText/>
+            {mode === 'daily_life' && predictionResult && renderDailyLife()}
+            {mode === 'yes_no' && predictionResult && renderYesNo()}
+            {typeof predictionResult === 'string' && <HeaderText>{predictionResult}</HeaderText>}
         </BackGround>
     );
 }

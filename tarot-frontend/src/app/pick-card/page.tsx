@@ -8,32 +8,29 @@ import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import FooterText from '@/components/FooterText';
 import MainNavBar from '@/components/MainNavBar';
+import { useTarot } from '@/contexts/TarotContext';
 
 export default function HomePage() {
   const DeckTarot = tarotDeck;
   const router = useRouter();
 
-  const [mode,setMode] = useState<string>('')
-  const [numCard,setNumCard] = useState<number>(0);
-  useEffect(()=>{
-    const modeItem = sessionStorage.getItem('mode');
-    const numCardItem = sessionStorage.getItem('num-card');
-    if(modeItem){
-      setMode(JSON.parse(modeItem));
-    }
-    if(numCardItem){
-      setNumCard(JSON.parse(numCardItem));
-    }
-    if(!numCardItem || !modeItem){
-        router.push('/home');
-        return;
-    }
-  },[])
+  const { isInitialized, mode, numCard } = useTarot();
 
-  if (mode === '' || numCard === 0) {
+  useEffect(() => {
+    if (!isInitialized) {
+      return;
+    }
+    if (!mode || numCard === 0) {
+      router.push('/home');
+    }
+  }, [isInitialized, mode, numCard, router]);
+
+  if (!isInitialized) {
       return (
           <BackGround>
-              <h1>Loading...</h1>
+            <DefaultMenuWrapContainer>
+              <HeaderText>Loading...</HeaderText>
+            </DefaultMenuWrapContainer>
           </BackGround>
       );
   }

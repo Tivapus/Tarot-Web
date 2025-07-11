@@ -1,113 +1,104 @@
 'use client';
 
+import { useRouter } from 'next/navigation';
+import { useEffect, useState } from 'react';
+import { useTarot } from '@/contexts/TarotContext';
+import { generateMessage } from '@/TarotPromtpTemplate';
+
 import { BackGround } from "@/styles/BackGround.styled";
 import { AskQuestionPage, GetQuestionButton, PackSearchContainer, QuestionBoxStyle, QuestionWithDetail } from "@/styles/SearchPageContainer.styled";
 import { DefaultMenuWrapContainer, HeaderText, Paragraph } from "@/styles/Shared.styled";
-import { generateMessage } from "@/TarotPromtpTemplate";
-import { Button } from "@mui/material";
-import { useRouter } from "next/navigation";
-import { useEffect, useState } from "react";
 import FooterText from "./FooterText";
 import { NavBarContainer } from "@/styles/NavBarContainer.styled";
 
-export default function QuestionTextField(){
+export default function QuestionTextField() {
     const router = useRouter();
-    const [input, setInput] = useState<string>('');
-    const [lenQuestion,setLenQuestion] = useState<number>(0)
-    const [error,setError] = useState<boolean>(false);
+    const { mode, question, updateMode, updateQuestion, updateNumCard } = useTarot();
 
-    const [click, setClick] = useState<boolean>(false);
+    const [input, setInput] = useState<string>(question || '');
+    const [lenQuestion, setLenQuestion] = useState<number>(0);
+    const [error, setError] = useState<boolean>(false);
     const [loading, setLoading] = useState<boolean>(false);
 
-    const [mode,setMode] = useState<string>('')
-    useEffect(()=>{
-        const modeItem = sessionStorage.getItem('mode');
-        if(modeItem){
-            setMode(JSON.parse(modeItem));
-        }
-        if(!modeItem){
-            router.push('/home');
-            return;
-        }
-    },[])
-
-    const sendReqToAI = async () =>{
+    const sendReqToAI = async (currentQuestion: string): Promise<boolean> => {
         try {
-            const message = generateMessage(mode, [], input);
-            console.log(message)
+            const message = generateMessage('chat_ai', [], currentQuestion);
             const response = await fetch('/api/chat', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ message:message,mode:mode }),
+                body: JSON.stringify({ message, mode: 'chat_ai' }),
             });
+
+            if (!response.ok) throw new Error("API request failed");
 
             const data = await response.json();
             const aiMessage = data.reply;
+            const parsedData = JSON.parse(aiMessage);
 
-            const cleanReply = aiMessage.replace(/```json|```/g, '').trim();
-            const parsedData = JSON.parse(cleanReply);
+            updateMode(parsedData.mode);
+            updateNumCard(parsedData.num_card_pick);
+            return true;
+        } catch (err) {
+            console.error("Error in chat_ai mode selection:", err);
+            window.alert('❌ ข้อผิดพลาดในการเชื่อมต่อ AI');
+            return false;
+        }
+    };
 
-            sessionStorage.setItem('num-card',JSON.stringify(parsedData.num_card_pick));
-            sessionStorage.setItem('mode',JSON.stringify(parsedData.mode));
-        } catch (error) {
-            console.error("Error fetching or parsing AI response:", error);
-            window.alert('❌ ข้อผิดพลาดในการเชื่อมต่อ AI')
-            router.push('/home');
-        } finally{
+    const handleOnClick = async () => {
+        if (input.length === 0) {
+            setError(true);
+            return;
+        }
+        
+        setLoading(true);
+        updateQuestion(input);
+
+        let navigate = false;
+
+        if (mode === 'chat_ai') {
+            const success = await sendReqToAI(input);
+            if (success) {
+                navigate = true;
+            }
+        } else {
+            navigate = true;
+        }
+
+        if (navigate) {
+            router.push('/pick-card');
+        } else {
             setLoading(false);
         }
-    }
-
-    useEffect(()=>{
-        if(!loading && click){
-            router.push('/pick-card');
-        }
-    },[loading])
-
-
-    const handleOnClick = async ()=>{
-        if(lenQuestion === 0){
-            setError(true);
-        }
-        else{
-            setClick(true)
-            if(mode === 'chat_ai'){
-                setLoading(true);
-                sessionStorage.setItem('question',JSON.stringify(input));
-                await sendReqToAI();
-            }else{
-                sessionStorage.setItem('question',JSON.stringify(input));
-                router.push('/pick-card');
-            }
-        }
-    }
+    };
 
     const handleOnChange = (e: React.ChangeEvent<HTMLInputElement>) => {
         setInput(e.target.value);
         setError(false);
-    }
+    };
 
-    useEffect(()=>{
+    useEffect(() => {
         setLenQuestion(input.length);
-    },[input])
+    }, [input]);
     
-    if(loading){
-        return(
+    if (loading) {
+        return (
             <BackGround>
-                <NavBarContainer/>
+                <NavBarContainer />
                 <DefaultMenuWrapContainer>
                     <HeaderText>กำลังประมวลคำถาม...</HeaderText>
                     <Paragraph>กรุณารอสักครู่ AI กำลังใช้พลังจิตเพื่อประมวลคำถามให้คุณ</Paragraph>
                 </DefaultMenuWrapContainer>
-                <FooterText/>
+                <FooterText />
             </BackGround>
         );
     }
-    return(
+
+    return (
         <AskQuestionPage>
-            <HeaderText style={{WebkitTextStroke: '1px #d5a127',fontSize:'60px'}}>- Ask me anything -</HeaderText>
+            <HeaderText style={{ WebkitTextStroke: '1px #d5a127', fontSize: '60px' }}>- Ask me anything -</HeaderText>
             <QuestionWithDetail>
-                {error && <Paragraph style={{color:'red'}}>Enter your question !!!</Paragraph>}
+                {error && <Paragraph style={{ color: 'red' }}>Enter your question !!!</Paragraph>}
                 <PackSearchContainer>
                     <QuestionBoxStyle
                         type="text"
@@ -115,7 +106,7 @@ export default function QuestionTextField(){
                         value={input}
                         onChange={handleOnChange}
                         maxLength={200}
-                        style={{border: error ? '2px solid red' : '2px solid #61619e'}}
+                        style={{ border: error ? '2px solid red' : '2px solid #61619e' }}
                     />
                 </PackSearchContainer>
                 <Paragraph>{lenQuestion}/200</Paragraph>
@@ -123,4 +114,4 @@ export default function QuestionTextField(){
             <GetQuestionButton onClick={handleOnClick}>Get an answer</GetQuestionButton>
         </AskQuestionPage>
     );
-}   
+}
