@@ -4,7 +4,7 @@ import { Fab, Drawer, Box, IconButton } from '@mui/material';
 import ChatIcon from '@mui/icons-material/Chat';
 import CloseIcon from '@mui/icons-material/Close';
 import ChatBotComponent from './Chatbot';
-import { useResults } from '@/contexts/ResultsContext';
+import { useResults } from '@/contexts/ResultsContext.context';
 
 export default function ChatDrawer() {
   const { isChatOpen, setIsChatOpen } = useResults();

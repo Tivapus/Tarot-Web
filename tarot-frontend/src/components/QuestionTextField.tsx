@@ -2,7 +2,7 @@
 
 import { useRouter } from 'next/navigation';
 import { useEffect, useState } from 'react';
-import { useTarot } from '@/contexts/TarotContext';
+import { useTarot } from '@/contexts/TarotContext.context';
 import { generateMessage } from '@/TarotPromtpTemplate';
 
 import { BackGround } from "@/styles/BackGround.styled";

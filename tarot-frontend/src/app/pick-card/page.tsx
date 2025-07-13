@@ -7,8 +7,8 @@ import { DefaultMenuWrapContainer, HeaderText } from '@/styles/Shared.styled';
 import { useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import FooterText from '@/components/FooterText';
-import MainNavBar from '@/components/MainNavBar';
-import { useTarot } from '@/contexts/TarotContext';
+import { useTarot } from '@/contexts/TarotContext.context';
+import OnProcessNavBar from '@/components/OnProcessNavBar';
 
 export default function HomePage() {
   const DeckTarot = tarotDeck;
@@ -36,7 +36,7 @@ export default function HomePage() {
   }
   return (
     <BackGround style={{height:'100vh'}}>
-      <MainNavBar/>
+      <OnProcessNavBar/>
       <DefaultMenuWrapContainer>
         <HeaderText style={{paddingTop:'64px'}}>🔮 Tarot 🔮</HeaderText>
         <Deck cards={DeckTarot} numPicks={numCard}/>

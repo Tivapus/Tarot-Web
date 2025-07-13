@@ -1,13 +1,12 @@
 'use client';
 
-import Link from 'next/link';
 import { GoBackContainer, NavBarContainer } from '@/styles/NavBarContainer.styled';
 import { Paragraph } from '@/styles/Shared.styled';
 import HomeIcon from './HomeIcon';
 import { useRouter } from 'next/navigation';
 import AssistantIcon from '@mui/icons-material/Assistant';
 import ChatDrawer from './ChatDrawer';
-import { useResults } from '@/contexts/ResultsContext';
+import { useResults } from '@/contexts/ResultsContext.context';
 
 const ResultsNavBar = () => {
     const router = useRouter();
@@ -34,4 +33,5 @@ const ResultsNavBar = () => {
         </NavBarContainer>
     );
 };
+
 export default ResultsNavBar;

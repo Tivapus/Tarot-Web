@@ -1,10 +1,10 @@
 'use client';
 
 import FooterText from '@/components/FooterText';
-import { useTarot } from '@/contexts/TarotContext';
+import HomeNavBar from '@/components/HomeNavBar';
+import { useTarot } from '@/contexts/TarotContext.context';
 import { BackGround } from '@/styles/BackGround.styled';
 import { AllModeCardContainer, FlipContainer, FlipFace, FlipInner, ModeCardContainer, ModeImage, ModeTextInCard } from '@/styles/HomePageContainer.styled';
-import { NavBarContainer } from '@/styles/NavBarContainer.styled';
 import { DefaultMenuWrapContainer, HeaderText } from '@/styles/Shared.styled';
 import { useRouter } from 'next/navigation';
 import { useEffect, useState } from 'react';
@@ -40,7 +40,7 @@ export default function SelectModePage() {
     }
     return (
         <BackGround>
-            <NavBarContainer/>
+            <HomeNavBar/>
             <DefaultMenuWrapContainer>
                 <HeaderText style={{marginBottom:'36px'}}>🔮 Tarot 🔮</HeaderText>
                 <AllModeCardContainer>

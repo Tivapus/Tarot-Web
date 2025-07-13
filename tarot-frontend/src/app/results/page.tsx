@@ -2,7 +2,7 @@
 
 import { useRouter } from 'next/navigation';
 import { useEffect, useState } from 'react';
-import { useTarot } from '@/contexts/TarotContext';
+import { useTarot } from '@/contexts/TarotContext.context';
 import { generateMessage } from '@/TarotPromtpTemplate';
 import { tarotDeck } from '@/TarotDeck';
 
@@ -13,6 +13,7 @@ import { NavBarContainer } from '@/styles/NavBarContainer.styled';
 import { CardDetailContainer, CardDetailYesNoContainer, ResultPickUpContainer, ShowAllCardContainer, ShowResultYesNoContainer, SummaryStockAllContainer, SummaryStockTextContainer, TextContainer } from '@/styles/ResultsCardWrapper.styled';
 import { DefaultMenuWrapContainer, HeaderText, MiddleLineStyle, Paragraph, SubHeaderText } from '@/styles/Shared.styled';
 import ResultsNavBar from '@/components/ResultsNavBar';
+import { useHistory } from '@/contexts/HistoryContext.context';
 
 export default function ResultsPage() {
     const router = useRouter();
@@ -24,8 +25,10 @@ export default function ResultsPage() {
         predictionResult, 
         updatePredictionResult,
         updateQuestion,
-        updateSelectedCards
+        updateSelectedCards,
+        updateCurrentSessionId
     } = useTarot();
+    const { addNewHistoryEntry } = useHistory();
 
     const [loading, setLoading] = useState<boolean>(true);
 
@@ -68,6 +71,8 @@ export default function ResultsPage() {
                     router.push('/ask-question');
                 } else {
                     updatePredictionResult(parsedData);
+                    const newEntryId = addNewHistoryEntry(parsedData, mode, question);
+                    updateCurrentSessionId(newEntryId);
                 }
             } catch (error) {
                 console.error("Error fetching or parsing AI response:", error);
@@ -127,17 +132,16 @@ export default function ResultsPage() {
     
     const renderYesNo = () => {
         const card = predictionResult?.card;
+        const localCard = tarotDeck.find(c => normalize(c.name) === normalize(card.card_name));
 
         return (
             <ResultPickUpContainer>
                 <HeaderText>ผลการทำนาย (Yes / No)</HeaderText>
                 <ShowResultYesNoContainer>
-                    {selectedCards.map((cardItem, key) => (
-                        <CardDetailYesNoContainer key={key}>
-                            <CardImage src={`/assets/cards/${cardItem.png}`} alt={cardItem.name} width={300} height={455}/>
-                            <SubHeaderText>{cardItem.name}</SubHeaderText>
-                        </CardDetailYesNoContainer>
-                    ))}
+                    <CardDetailYesNoContainer>
+                        <CardImage src={`/assets/cards/${localCard?.png}`} alt={localCard?.name || ""} width={300} height={455}/>
+                        <SubHeaderText>{card.card_name}</SubHeaderText>
+                    </CardDetailYesNoContainer>
                     <MiddleLineStyle/>
                     {card && (
                         <TextContainer>

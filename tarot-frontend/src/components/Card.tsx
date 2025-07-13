@@ -7,7 +7,6 @@ import {
     CardImage,
     FlipWrapper,
 } from '@/styles/CardContainer.styled';
-import Image from 'next/image';
 import { useState } from 'react';
 import ReactCardFlip from 'react-card-flip';
 
