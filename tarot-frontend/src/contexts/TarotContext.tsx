@@ -2,9 +2,10 @@
 
 import { createContext, useState, useContext, ReactNode, useEffect, useCallback } from 'react';
 import { CardType } from '@/models/Card.model';
-import { PredictionResult } from '@/models/PredictResults';
+import { PredictionResult } from '@/models/PredictResults.model';
+import { Message } from '@/models/Chat.model';
 
-export type TarotMode = 'daily_life' | 'yes_no' | 'chat_ai' | null;
+export type TarotMode = 'daily_life' | 'yes_no' | 'chat_ai' | 'real_chat_ai' | null;
 
 interface TarotContextType {
   isInitialized: boolean;
@@ -13,6 +14,8 @@ interface TarotContextType {
   numCard: number;
   selectedCards: CardType[];
   predictionResult: PredictionResult | null;
+  chatHistory: Message[];
+  updateChatHistory: (message: Message) => void;
   updateMode: (mode: TarotMode) => void;
   updateQuestion: (question: string) => void;
   updateNumCard: (num: number) => void;
@@ -34,6 +37,7 @@ export function TarotProvider({ children }: TarotProviderProps) {
   const [numCard, setNumCard] = useState<number>(0);
   const [selectedCards, setSelectedCards] = useState<CardType[]>([]);
   const [predictionResult, setPredictionResult] = useState<PredictionResult | null>(null);
+  const [chatHistory, setChatHistory] = useState<Message[]>([]);
 
   useEffect(() => {
     try {
@@ -47,6 +51,8 @@ export function TarotProvider({ children }: TarotProviderProps) {
       if (savedCards) setSelectedCards(JSON.parse(savedCards));
       const savedResult = sessionStorage.getItem('predictionResult');
       if (savedResult) setPredictionResult(JSON.parse(savedResult));
+      const savedChatHistory = sessionStorage.getItem('chatHistory');
+      if (savedChatHistory) setChatHistory(JSON.parse(savedChatHistory));
     } catch (error) {
       console.error("Error initializing state from sessionStorage:", error);
     } finally {
@@ -79,6 +85,14 @@ export function TarotProvider({ children }: TarotProviderProps) {
     sessionStorage.setItem('predictionResult', JSON.stringify(newResult));
   }, []);
 
+  const updateChatHistory = useCallback((message: Message) => {
+    setChatHistory(prevChatHistory => {
+      const newHistory = [...prevChatHistory, message];
+      sessionStorage.setItem('chatHistory', JSON.stringify(newHistory));
+      return newHistory;
+    });
+  }, []);
+
   const clearAllState = useCallback(() => {
     setMode(null);
     sessionStorage.removeItem('mode');
@@ -90,6 +104,8 @@ export function TarotProvider({ children }: TarotProviderProps) {
     sessionStorage.removeItem('cards');
     setPredictionResult(null);
     sessionStorage.removeItem('predictionResult');
+    setChatHistory([]);
+    sessionStorage.removeItem('chatHistory');
   }, []);
 
   const value: TarotContextType = {
@@ -99,6 +115,8 @@ export function TarotProvider({ children }: TarotProviderProps) {
     numCard,
     selectedCards,
     predictionResult,
+    chatHistory,
+    updateChatHistory,
     updateMode,
     updateQuestion,
     updateNumCard,

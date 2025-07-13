@@ -6,7 +6,6 @@ import { Button } from '@mui/material';
 import { CardType } from '@/models/Card.model';
 import BackCard from './BackCard';
 import { useRouter } from 'next/navigation';
-import { Paragraph } from '@/styles/Shared.styled';
 import { useTarot } from '@/contexts/TarotContext';
 
 interface ArcDeckProps {

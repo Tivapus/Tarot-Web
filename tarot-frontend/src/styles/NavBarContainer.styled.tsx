@@ -15,6 +15,6 @@ export const GoBackContainer = styled('div')`
   gap: 8px;
   width: 100%;
   align-items: center;
-  justify-content: center;
   cursor: pointer;
+  padding: 8px 16px;
 `;

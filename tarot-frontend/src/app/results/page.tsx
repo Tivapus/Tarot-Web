@@ -7,12 +7,12 @@ import { generateMessage } from '@/TarotPromtpTemplate';
 import { tarotDeck } from '@/TarotDeck';
 
 import FooterText from '@/components/FooterText';
-import MainNavBar from '@/components/MainNavBar';
 import { BackGround } from '@/styles/BackGround.styled';
 import { CardImage } from '@/styles/CardContainer.styled';
 import { NavBarContainer } from '@/styles/NavBarContainer.styled';
 import { CardDetailContainer, CardDetailYesNoContainer, ResultPickUpContainer, ShowAllCardContainer, ShowResultYesNoContainer, SummaryStockAllContainer, SummaryStockTextContainer, TextContainer } from '@/styles/ResultsCardWrapper.styled';
 import { DefaultMenuWrapContainer, HeaderText, MiddleLineStyle, Paragraph, SubHeaderText } from '@/styles/Shared.styled';
+import ResultsNavBar from '@/components/ResultsNavBar';
 
 export default function ResultsPage() {
     const router = useRouter();
@@ -22,7 +22,9 @@ export default function ResultsPage() {
         question, 
         selectedCards, 
         predictionResult, 
-        updatePredictionResult 
+        updatePredictionResult,
+        updateQuestion,
+        updateSelectedCards
     } = useTarot();
 
     const [loading, setLoading] = useState<boolean>(true);
@@ -60,6 +62,8 @@ export default function ResultsPage() {
 
                 if (parsedData.status === 'invalid_question') {
                     window.alert(parsedData.message);
+                    updateQuestion('');
+                    updateSelectedCards([]);
                     updatePredictionResult(null); 
                     router.push('/ask-question');
                 } else {
@@ -113,9 +117,7 @@ export default function ResultsPage() {
                     <SummaryStockTextContainer>
                         <SubHeaderText>แนะนำสินทรัพย์</SubHeaderText>
                         {stock_recommendation.stocks.map((stock: any, idx: number) => (
-                            <Paragraph key={idx}>
-                                📈 {stock.stock}: {stock.reason}
-                            </Paragraph>
+                            <Paragraph key={idx}>📈 {stock.stock}: {stock.reason}</Paragraph>
                         ))}
                     </SummaryStockTextContainer>
                 </SummaryStockAllContainer>
@@ -140,8 +142,8 @@ export default function ResultsPage() {
                     {card && (
                         <TextContainer>
                             <SubHeaderText>คำถาม : {predictionResult?.question ?? '( Your Question )'}</SubHeaderText>
-                            <HeaderText>{card.answer.split(' ')[0]}</HeaderText>
-                            <Paragraph>{card.answer.split('เพราะ')[1]}</Paragraph>
+                            <HeaderText>{card.answer}</HeaderText>
+                            <Paragraph>{card.reasoning}</Paragraph>
                         </TextContainer>
                     )}
                 </ShowResultYesNoContainer>
@@ -164,7 +166,7 @@ export default function ResultsPage() {
 
     return (
         <BackGround>
-            <MainNavBar/>
+            <ResultsNavBar/>
             {mode === 'daily_life' && predictionResult && renderDailyLife()}
             {mode === 'yes_no' && predictionResult && renderYesNo()}
             {typeof predictionResult === 'string' && <HeaderText>{predictionResult}</HeaderText>}

@@ -4,7 +4,7 @@ import { BackGround } from '@/styles/BackGround.styled';
 import Deck from '@/components/Deck';
 import { tarotDeck } from '@/TarotDeck';
 import { DefaultMenuWrapContainer, HeaderText } from '@/styles/Shared.styled';
-import { useEffect, useState } from 'react';
+import { useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import FooterText from '@/components/FooterText';
 import MainNavBar from '@/components/MainNavBar';

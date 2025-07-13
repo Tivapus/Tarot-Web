@@ -2,96 +2,138 @@
 
 import { useRouter } from 'next/navigation';
 import { useState, useRef, useEffect } from 'react';
+import { useTarot } from '@/contexts/TarotContext';
+import MainNavBar from '@/components/MainNavBar';
+import FooterText from '@/components/FooterText';
+import { BackGround } from '@/styles/BackGround.styled';
+import ReactMarkdown from 'react-markdown';
+import { ChatContainer, HistoryContainer, InputWrapper, MessageBubble, MessageWrapper, StyledButton, StyledInput, Title, TypingIndicator } from '@/styles/ChatContainer.styled';
+import { Message } from '@/models/Chat.model';
 
-export interface Message {
-  role: 'user' | 'ai';
-  content: string;
-}
+export default function ChatBotComponent() {
+  const router = useRouter();
+  const { isInitialized, predictionResult, chatHistory, updateChatHistory } = useTarot();
 
-export default function ChatBox() {
-  const [messages, setMessages] = useState<Message[]>([]);
-  const [input, setInput] = useState<string>('');
-  const [loading, setLoading] = useState<boolean>(false);
+  const [userInput, setUserInput] = useState<string>('');
+  const [isChatLoading, setIsChatLoading] = useState<boolean>(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
-  const router =useRouter();
-  const [mode,setMode] = useState<string>('')
-  const [ready,setReady] = useState<boolean>(false);
-  useEffect(()=>{
-    const modeItem = sessionStorage.getItem('mode');
-    if(modeItem){
-      setMode(JSON.parse(modeItem));
-    }else{
-      router.push('/home')
+  useEffect(() => {
+    if (!isInitialized) return;
+    
+    if (!predictionResult) {
+        router.push('/home');
+        return;
     }
-    setReady(true)
-  },[])
+    const createFollowUpMessage = (questions: string[]) => {
+        if (!Array.isArray(questions) || questions.length === 0) {
+            return ''; 
+        }
 
-  const sendMessage = async () => {
-    if (!input.trim()) return;
-    if(!ready) return;
+        const questionList = questions
+            .map((q, index) => `${index + 1}. ${q}`)
+            .join('\n'); 
 
-    const userMessage: Message = { role: 'user', content: input };
-    setMessages(prev => [...prev, userMessage]);
-    setLoading(true);
+        return `\n\n**คำถามที่แนะนำเพิ่มเติม:**\n${questionList}`;
+    };
 
-    try {
-      const response = await fetch('/api/chat', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ message: input,mode:mode }),
-      });
+    const followUpText = createFollowUpMessage(predictionResult?.follow_up_questions || []);
 
-      const data = await response.json();
-      const aiMessage: Message = { role: 'ai', content: data.reply };
+    if (chatHistory.length === 0) {
+        updateChatHistory(
+            { role: 'model', content: `นี่คือผลคำทำนายล่าสุดของคุณค่ะ มีอะไรอยากให้ 'มาดามเจมินี่' ช่วยอธิบายเพิ่มเติม หรือมีคำถามอะไรที่สงสัยไหมคะ? ${followUpText}` }
+        );
+    }
+  }, [isInitialized, predictionResult, router, chatHistory.length]);
 
-      setMessages(prev => [...prev, aiMessage]);
+  const handleSendMessage = async () => {
+      if (!userInput.trim() || isChatLoading) return;
+
+      const newUserMessage: Message = { role: 'user', content: userInput };
+      updateChatHistory(newUserMessage);
+      setUserInput('');
+      setIsChatLoading(true);
+
+      try {
+          const response = await fetch('/api/chat', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ 
+                    history: chatHistory, 
+                    mode: 'real_chat_ai',
+                    initialResult: predictionResult,
+                    message: userInput
+                }), 
+          });
+
+          if (!response.ok) {
+            throw new Error(`API Error: ${response.statusText}`);
+          }
+
+          const data = await response.json();
+          const aiReply: Message = { role: 'model', content: data.reply };
+
+          updateChatHistory(aiReply);
+
     } catch (error) {
-      setMessages(prev => [...prev, { role: 'ai', content: '❌ ข้อผิดพลาดในการเชื่อมต่อ AI' }]);
+        console.error("Chat Error:", error);
+        updateChatHistory({ role: 'model', content: '❌ ขออภัยค่ะ เกิดข้อผิดพลาดในการเชื่อมต่อ' });
     } finally {
-      setInput('');
-      setLoading(false);
+        setIsChatLoading(false);
     }
   };
 
   const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
-    if (e.key === 'Enter') sendMessage();
+    if (e.key === 'Enter') handleSendMessage();
   };
 
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
-  }, [messages]);
+  }, [chatHistory]);
+
+  if (!isInitialized || chatHistory.length === 0) {
+    return (
+        <BackGround>
+            <MainNavBar />
+            <div>Loading Chat...</div>
+            <FooterText />
+        </BackGround>
+    );
+  }
 
   return (
-    <div className="max-w-lg mx-auto p-4 border rounded-lg shadow bg-white text-black">
-      <div className="h-80 overflow-y-auto mb-4 border p-3 rounded bg-gray-100 text-black">
-        {messages.map((msg, idx) => (
-          <div key={idx} className={`mb-2 ${msg.role === 'user' ? 'text-right' : 'text-left'} text-black`}>
-            <p className="text-black">
-              <strong>{msg.role === 'user' ? 'You' : 'AI'}:</strong> {msg.content}
-            </p>
-          </div>
-        ))}
-        <div ref={messagesEndRef} />
-      </div>
-
-      <input
-        type="text"
-        className="w-full border p-2 rounded text-black"
-        placeholder="พิมพ์คำถามเรื่องดวงหรือหุ้น..."
-        value={input}
-        onChange={(e) => setInput(e.target.value)}
-        onKeyDown={handleKeyDown}
-        disabled={loading}
-      />
-
-      <button
-        onClick={sendMessage}
-        className="mt-2 w-full bg-blue-600 text-white p-2 rounded disabled:opacity-50"
-        disabled={loading}
-      >
-        {loading ? 'กำลังคิด...' : 'ส่ง'}
-      </button>
-    </div>
+        <ChatContainer>
+            <Title>Chat with Tarot AI</Title>
+            <HistoryContainer>
+                {chatHistory.map((msg, idx) => (
+                    <MessageWrapper key={idx} isModel={msg.role === 'model'}>
+                        <MessageBubble isModel={msg.role === 'model'}>
+                            <ReactMarkdown>
+                                {msg.content}
+                            </ReactMarkdown>
+                        </MessageBubble>
+                    </MessageWrapper>
+                ))}
+                {isChatLoading && <TypingIndicator>กำลังพิมพ์...</TypingIndicator>}
+                <div ref={messagesEndRef} />
+            </HistoryContainer>
+            <InputWrapper>
+                <StyledInput
+                    type="text"
+                    placeholder="ถามคำถามเพิ่มเติม..."
+                    value={userInput}
+                    onChange={(e) => setUserInput(e.target.value)}
+                    onKeyDown={handleKeyDown}
+                    disabled={isChatLoading}
+                />
+                <StyledButton
+                    variant="contained"
+                    onClick={handleSendMessage}
+                    disabled={isChatLoading}
+                >
+                    ส่ง
+                </StyledButton>
+            </InputWrapper>
+        </ChatContainer>
   );
 }

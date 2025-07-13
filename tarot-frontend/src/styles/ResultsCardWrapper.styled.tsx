@@ -29,7 +29,7 @@ export const CardDetailContainer = styled('div')`
     flex-direction: column;
     gap: 16px;
     align-items: center;
-    justify-content: center;
+    justify-content: top;
     width: 500px;
 
     background-color: rgba(72, 81, 129, 0.2);
@@ -58,7 +58,7 @@ export const SummaryStockTextContainer = styled('div')`
     flex-direction: column;
     gap: 4px;
     align-items: center;
-    justify-content: center;
+    justify-content: top;
     width: 770px;
 
     background-color: rgba(72, 81, 129, 0.2);
