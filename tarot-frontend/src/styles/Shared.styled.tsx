@@ -33,14 +33,23 @@ export const MiddleLineStyle = styled('div')`
 
 export const FooterTextStyle = styled('p')`
   color: #ffffff;
-  position: fixed;
   font-size: 16px;
   font-weight: 400;
   text-align: center;
   width: 100%;
   line-height: 100%;
-  bottom: 0;
-  left: 0;
-  padding: 16px;
   font-family: 'Inter', sans-serif;
+`;
+
+export const FooterTextBox = styled('div')`
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    width: 100%;
+    gap: 10px;
+    left: 0;
+    bottom: 0;
+    position: fixed;
+    padding: 16px;
 `;
